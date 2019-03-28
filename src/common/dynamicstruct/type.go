@@ -15,20 +15,21 @@ package dynamicstruct
 import (
 	"fmt"
 	"strings"
-	
-	"gopkg.in/go-playground/validator.v8"
+
+	"github.com/golang/glog"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // Field represent a field of dynamic struct
 // FieldName is the field name that current field in target struct
 type Field struct {
 	Name      string
-	Tags      []string
+	tags      []string
 	FieldName string
 }
 
 func (fd *Field) GetTag() string {
-	return strings.Join(fd.Tags, ",")
+	return strings.Join(fd.tags, ",")
 }
 
 // DynamicStructure is a validate manager to dynamic struct, which is a common case in cmdb,
@@ -47,9 +48,15 @@ func (ds *DynamicStructure) Validate() []error {
 			continue
 		}
 		var validate *validator.Validate
-		validate = validator.New(nil)
-		// errs := validate.Var(myEmail, "required,email")
-		validate.Field(val, field.GetTag())
+		tag := field.GetTag()
+		validate = validator.New()
+		glog.Infof("validate value %+v with tag %s", val, tag)
+		err := validate.Var(val, tag)
+		errs = append(errs, err)
 	}
-	return errs
+	
+	if len(errs) == 0 {
+		return errs
+	}
+	return nil
 }
