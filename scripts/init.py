@@ -16,7 +16,7 @@ def generate_config_file(
         rd_server_v, db_name_v, redis_ip_v, redis_port_v, redis_user_v,
         redis_pass_v, mongo_ip_v, mongo_port_v, mongo_user_v, mongo_pass_v,
         cc_url_v, paas_url_v, full_text_search, es_url_v, auth_address, auth_app_code,
-        auth_app_secret, auth_enabled, auth_scheme
+        auth_app_secret, auth_enabled, auth_scheme, auth_sync_workers, auth_sync_interval_minutes
 ):
     output = os.getcwd() + "/cmdb_adminserver/configures/"
     context = dict(
@@ -41,6 +41,8 @@ def generate_config_file(
         auth_app_secret=auth_app_secret,
         auth_enabled=auth_enabled,
         auth_scheme=auth_scheme,
+        auth_sync_workers=auth_sync_workers,
+        auth_sync_interval_minutes=auth_sync_interval_minutes,
         full_text_search=full_text_search
     )
     if not os.path.exists(output):
@@ -195,6 +197,8 @@ appCode = $auth_app_code
 appSecret = $auth_app_secret
 enable = $auth_enabled
 enableSync = false
+syncWorkers = $auth_sync_workers
+syncIntervalMinutes = $auth_sync_interval_minutes
     '''
 
     template = FileTemplate(migrate_file_template_str)
@@ -393,6 +397,8 @@ def main(argv):
         "auth_enabled": "false",
         "auth_app_code": "bk_cmdb",
         "auth_app_secret": "",
+        "auth_sync_workers": "1",
+        "auth_sync_interval_minutes": "45",
     }
     full_text_search = 'off'
     es_url='http://127.0.0.1:9200'
@@ -417,6 +423,7 @@ def main(argv):
         "blueking_paas_url=", "listen_port=", "es_url=", "auth_address=",
         "auth_app_code=", "auth_app_secret=", "auth_enabled=",
         "auth_scheme=", "full_text_search="
+        "auth_scheme=", "auth_sync_workers=", "auth_sync_interval_minutes=", "full_text_search="
     ]
     usage = '''
     usage:
@@ -437,8 +444,36 @@ def main(argv):
       --auth_address       <auth_address>         iam address
       --auth_app_code      <auth_app_code>        app code for iam, default bk_cmdb
       --auth_app_secret    <auth_app_secret>      app code for iam
+      --auth_sync_workers  <auth_sync_workers>      work count to run sync job
+      --auth_sync_interval_minutes    <auth_sync_interval_minutes>      interval between two start
       --full_text_search   <full_text_search>     full text search on or off
       --es_url             <es_url>               the es listen url, see in es dir config/elasticsearch.yml, (network.host, http.port), default: http://127.0.0.1:9200
+
+
+    demo:
+    python init.py  \\
+      --discovery          127.0.0.1:2181 \\
+      --database           cmdb \\
+      --redis_ip           127.0.0.1 \\
+      --redis_port         6379 \\
+      --redis_pass         1111 \\
+      --mongo_ip           127.0.0.1 \\
+      --mongo_port         27017 \\
+      --mongo_user         cc \\
+      --mongo_pass         cc \\
+      --blueking_cmdb_url  http://127.0.0.1:8080/ \\
+      --blueking_paas_url  http://paas.domain.com \\
+      --listen_port        8080 \\
+      --auth_scheme        internal \\
+      --auth_enabled       false \\
+      --auth_address       https://iam.domain.com/ \\
+      --auth_app_code      bk_cmdb \\
+      --auth_app_secret    xxxxxxx \\
+      --auth_sync_workers  1 \\
+      --auth_sync_interval_minutes  45 \\
+      --full_text_search   off \\
+      --es_url             http://127.0.0.1:9200 \\
+      --log_level          3
     '''
     try:
         opts, _ = getopt.getopt(argv, "hd:D:r:p:x:s:m:P:X:S:u:U:a:l:es", arr)
@@ -507,6 +542,12 @@ def main(argv):
         elif opt in ("--auth_app_secret",):
             auth["auth_app_secret"] = arg
             print("auth_app_secret:", auth["auth_app_secret"])
+        elif opt in ("--auth_sync_workers",):
+            auth["auth_sync_workers"] = arg
+            print("auth_sync_workers:", auth["auth_sync_workers"])
+        elif opt in ("--auth_sync_interval_minutes",):
+            auth["auth_sync_interval_minutes"] = arg
+            print("auth_sync_interval_minutes:", auth["auth_sync_interval_minutes"])
         elif opt in ("--full_text_search",):
             full_text_search = arg
             print('full_text_search:', full_text_search)
