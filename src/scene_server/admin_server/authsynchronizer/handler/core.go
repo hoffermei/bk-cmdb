@@ -22,28 +22,24 @@ import (
 	"configcenter/src/auth/authcenter"
 	authmeta "configcenter/src/auth/meta"
 	"configcenter/src/common/blog"
-)
-
-const (
-	IamPageLimit              = 1000
-	IamRequestIntervalSeconds = 10
+	"configcenter/src/scene_server/admin_server/authsynchronizer/meta"
 )
 
 func (ih *IAMHandler) getIamResources(taskName string, ra *authmeta.ResourceAttribute, iamIDPrefix string) ([]authmeta.BackendResource, error) {
 	offset := int64(0)
 	iamResources := make([]authmeta.BackendResource, 0)
 	for {
-		iamResult, err := ih.authManager.Authorize.ListPageResources(context.Background(), ra, IamPageLimit, offset)
+		iamResult, err := ih.authManager.Authorize.ListPageResources(context.Background(), ra, meta.IamPageLimit, offset)
 		if err != nil {
 			blog.Errorf("synchronize failed, ListResources from iam failed, task: %s, err: %+v", taskName, err)
 			return nil, err
 		}
 		iamResources = append(iamResources, iamResult.Results...)
-		offset += IamPageLimit
+		offset += meta.IamPageLimit
 		if int64(offset) > iamResult.Count {
 			break
 		}
-		time.Sleep(IamRequestIntervalSeconds * time.Second)
+		time.Sleep(meta.IamRequestIntervalMillisecond * time.Millisecond)
 	}
 
 	realResources := make([]authmeta.BackendResource, 0)
@@ -63,17 +59,17 @@ func (ih *IAMHandler) diffAndSyncInstances(header http.Header, taskName string, 
 	offset := int64(0)
 	iamResources := make([]authmeta.BackendResource, 0)
 	for {
-		iamResult, err := ih.authManager.Authorize.RawPageListResources(context.Background(), header, searchCondition, IamPageLimit, offset)
+		iamResult, err := ih.authManager.Authorize.RawPageListResources(context.Background(), header, searchCondition, meta.IamPageLimit, offset)
 		if err != nil {
 			blog.Errorf("synchronize failed, RawPageListResources from iam failed, task: %s, err: %+v", taskName, err)
 			return err
 		}
 		iamResources = append(iamResources, iamResult.Results...)
-		offset += IamPageLimit
+		offset += meta.IamPageLimit
 		if int64(offset) > iamResult.Count {
 			break
 		}
-		time.Sleep(IamRequestIntervalSeconds * time.Second)
+		time.Sleep(meta.IamRequestIntervalMillisecond * time.Millisecond)
 	}
 	if blog.V(5) {
 		blog.InfoJSON("ih.authManager.Authorize.RawPageListResources, count: %d,  result: %v", len(iamResources), iamResources)
@@ -166,7 +162,7 @@ func (ih *IAMHandler) diffAndSyncCore(taskName string, iamResources []authmeta.B
 			}
 		} else {
 			needRegister = append(needRegister, resource)
-            blog.Infof("need register resource, type: %s, name: %s, id: %d", resource.Type, resource.Name, resource.InstanceID)
+			blog.Infof("need register resource, type: %s, name: %s, id: %d", resource.Type, resource.Name, resource.InstanceID)
 		}
 	}
 
@@ -203,9 +199,9 @@ func (ih *IAMHandler) diffAndSyncCore(taskName string, iamResources []authmeta.B
 		if iamResourceKeyMap[resourceKey] == 0 {
 			needDeregister = append(needDeregister, iamResource)
 			if len(iamResource) != 0 {
-			    blog.Infof("need deregister, type: %s, name: %s, id: %d", iamResource[0].ResourceType, 
-			        iamResource[0].ResourceName, iamResource[0].ResourceID)
-            }
+				blog.Infof("need deregister, type: %s, name: %s, id: %d", iamResource[0].ResourceType,
+					iamResource[0].ResourceName, iamResource[0].ResourceID)
+			}
 		}
 	}
 
