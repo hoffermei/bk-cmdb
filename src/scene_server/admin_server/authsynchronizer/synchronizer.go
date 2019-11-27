@@ -65,7 +65,7 @@ func (d *AuthSynchronizer) Run() error {
 		return nil
 	}
 
-	blog.Infof("auth synchronize start...")
+	blog.Infof("auth synchronize start..., worker count: %d", d.WorkerCount)
 
 	// init queue
 	d.WorkerQueue = make(chan meta.WorkRequest, 1000)
