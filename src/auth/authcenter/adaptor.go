@@ -23,7 +23,7 @@ import (
 	"configcenter/src/auth/meta"
 	"configcenter/src/common"
 	"configcenter/src/common/metadata"
-	params "configcenter/src/common/paraparse"
+	"configcenter/src/common/paraparse"
 )
 
 var NotEnoughLayer = fmt.Errorf("not enough layer")
